@@ -139,7 +139,9 @@ class OCNN:
 
     hidden_units: int = 32
     nu: float = 0.05
-    epochs: int = 140
+    # Kept deliberately compact so the interactive demonstration stays
+    # responsive on a Render Free instance (0.1 CPU), too.
+    epochs: int = 90
     learning_rate: float = 0.012
     random_state: int = 42
 
@@ -198,14 +200,17 @@ class Experiment:
     def __init__(self, seed: int) -> None:
         self.seed = seed
         rng = np.random.default_rng(seed)
-        self.training = normal_trace(5000, rng)
+        # A representative normal-only reference period.  This is sufficient
+        # for the synthetic state space and avoids making a browser request
+        # wait several minutes on a low-CPU hosting tier.
+        self.training = normal_trace(1500, rng)
         self.scaler = MinMaxScaler().fit(self.training)
         scaled = self.scaler.transform(self.training)
         self.models: dict[str, Any] = {
             "OCSVM": OneClassSVM(kernel="rbf", gamma="scale", nu=0.05).fit(scaled),
             "OCNN": OCNN(random_state=seed).fit(scaled),
             "Isolation Forest": IsolationForest(
-                n_estimators=250, max_samples=256, contamination=0.05,
+                n_estimators=120, max_samples=256, contamination=0.05,
                 random_state=seed, n_jobs=-1,
             ).fit(scaled),
         }
@@ -278,7 +283,7 @@ def run_experiment():
         experiment = get_experiment(seed)
         return jsonify({
             "seed": seed,
-            "training_samples": 5000,
+            "training_samples": len(experiment.training),
             "results": [experiment.evaluate(number) for number in selected_sets],
             "notice": "Los valores son resultados de esta simulación y variarán con la semilla; no son cifras copiadas del artículo.",
         })
