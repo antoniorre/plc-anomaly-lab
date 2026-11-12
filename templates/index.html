@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Laboratorio reproducible de detección de anomalías PLC inspirado en TLIGHT.">
+  <title>PLC Anomaly Lab · Antonio Robles Meza</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Inicio PLC Anomaly Lab"><span class="brand-mark">⌁</span><span>PLC <b>ANOMALY</b> LAB</span></a>
+    <div class="top-meta"><span class="pulse"></span> SIMULACIÓN ACTIVA <span class="divider"></span> v1.0</div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">CIBERSEGURIDAD INDUSTRIAL · PLC / HMI</p>
+        <h1>Detección de anomalías<br><em>sin supervisión.</em></h1>
+        <p class="hero-copy">Un laboratorio reproducible para comparar OCSVM, red neuronal de una clase e Isolation Forest sobre trazas de proceso TLIGHT simuladas.</p>
+      </div>
+      <div class="identity-card">
+        <span>PROYECTO DE INVESTIGACIÓN</span>
+        <strong>Antonio Robles Meza</strong>
+        <small>Réplica metodológica · 2026</small>
+      </div>
+    </section>
+
+    <section class="notice" aria-label="Alcance de la réplica">
+      <span class="notice-icon">i</span>
+      <p><b>Réplica metodológica transparente:</b> el programa simula el proceso TLIGHT y sus siete escenarios; no contiene ni afirma reproducir los registros HMI originales ni las cifras publicadas. Cambia la semilla para repetir el experimento.</p>
+    </section>
+
+    <section class="lab-layout">
+      <aside class="control-panel">
+        <div class="panel-title"><span class="step">01</span><div><h2>Configurar corrida</h2><p>Entrenamiento solo con estados normales.</p></div></div>
+        <label for="seed">Semilla reproducible</label>
+        <div class="input-wrap"><span>#</span><input id="seed" type="number" min="0" max="999999" value="2026"></div>
+
+        <fieldset>
+          <legend>Conjuntos de evaluación</legend>
+          <label class="check"><input type="checkbox" value="1" checked><span>Set 1 <small>5,000 · señales</small></span></label>
+          <label class="check"><input type="checkbox" value="2" checked><span>Set 2 <small>7,000 · todo encendido</small></span></label>
+          <label class="check"><input type="checkbox" value="3" checked><span>Set 3 <small>13,130 · mezcla</small></span></label>
+          <label class="check"><input type="checkbox" value="4" checked><span>Set 4 <small>15,000 · temporización</small></span></label>
+          <label class="check"><input type="checkbox" value="5" checked><span>Set 5 <small>18,270 · mixto</small></span></label>
+        </fieldset>
+        <button id="run-button" class="primary"><span class="play">▶</span> Ejecutar análisis</button>
+        <p id="run-status" class="status" aria-live="polite">Listo para entrenar 3 detectores.</p>
+        <a class="download-link" id="download-link" href="/api/download/test-set-5.csv?seed=2026">↓ Descargar set 5 (CSV)</a>
+      </aside>
+
+      <div class="dashboard">
+        <div class="dashboard-heading"><div><p class="eyebrow">RESULTADOS DE LA CORRIDA</p><h2 id="result-title">Aún sin ejecutar</h2></div><span class="model-count">3 MODELOS</span></div>
+        <div id="summary-cards" class="summary-cards empty-state">
+          <div class="empty-illustration">⌁</div><p>Selecciona los conjuntos y ejecuta el análisis para ver las métricas.</p>
+        </div>
+        <section class="chart-card" aria-labelledby="comparison-title">
+          <div class="card-header"><div><p class="eyebrow">COMPARACIÓN</p><h3 id="comparison-title">F1 por conjunto y detector</h3></div><span class="legend"><i class="legend-a"></i> OCSVM <i class="legend-b"></i> OCNN <i class="legend-c"></i> IF</span></div>
+          <div id="f1-chart" class="chart empty-chart">La gráfica se dibujará tras el análisis.</div>
+        </section>
+        <section class="table-card">
+          <div class="card-header"><div><p class="eyebrow">MÉTRICAS DETALLADAS</p><h3>Exactitud de clasificación</h3></div><span id="metric-note">—</span></div>
+          <div class="table-scroll"><table><thead><tr><th>Conjunto</th><th>Detector</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>TP · TN · FP · FN</th></tr></thead><tbody id="metrics-body"><tr><td colspan="7" class="muted">Sin datos todavía.</td></tr></tbody></table></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="live-section">
+      <div class="live-intro"><p class="eyebrow">LECTURA DE PROCESO</p><h2>Inspección de una<br><em>muestra en vivo.</em></h2><p>Inyecta un estado normal o uno de los escenarios de prueba y observa la decisión de cada detector entrenado.</p><label for="scenario">Estado para inspeccionar</label><select id="scenario"><option value="normal">Operación normal</option>{% for id, name in scenarios.items() %}<option value="{{ id }}">Escenario {{ id }} — {{ name }}</option>{% endfor %}</select><button id="inspect-button" class="secondary">Inspeccionar estado <span>→</span></button></div>
+      <div class="live-board">
+        <div class="signal-header"><span>MAPA DE MEMORIA PLC</span><span id="state-badge" class="badge neutral">EN ESPERA</span></div>
+        <div id="signal-grid" class="signal-grid">{% for feature in features %}<div class="signal"><span>{{ feature|replace('_',' ') }}</span><strong>—</strong></div>{% endfor %}</div>
+        <div class="decisions"><p class="eyebrow">DECISIONES DE MODELO</p><div id="decision-grid" class="decision-grid"><p class="muted">Ejecuta primero el análisis para cargar los modelos.</p></div></div>
+      </div>
+    </section>
+
+    <section class="method-section">
+      <div><p class="eyebrow">DISEÑO EXPERIMENTAL</p><h2>De la memoria PLC a la alerta.</h2></div>
+      <ol class="pipeline"><li><span>01</span><b>Historiador simulado</b><small>14 señales de entradas, salidas, diagnóstico y temporización.</small></li><li><span>02</span><b>Min–Max</b><small>Normalización aprendida solo del comportamiento válido.</small></li><li><span>03</span><b>Modelado</b><small>OCSVM, OCNN y Isolation Forest se entrenan en paralelo.</small></li><li><span>04</span><b>Evaluación</b><small>Precision, recall, F1 y matriz de confusión.</small></li></ol>
+    </section>
+  </main>
+  <footer><span>PLC ANOMALY LAB · Antonio Robles Meza</span><span>Inspirado en Boateng &amp; Bruce (2022) · <a href="https://doi.org/10.3390/jcp2020012" target="_blank" rel="noreferrer">DOI 10.3390/jcp2020012</a></span></footer>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
